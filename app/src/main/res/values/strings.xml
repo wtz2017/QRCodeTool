@@ -1,0 +1,4 @@
+<resources>
+    <string name="app_name">QRCodeTool</string>
+    <string name="format_save_dir">(本机保存目录为：%1$s)</string>
+</resources>
