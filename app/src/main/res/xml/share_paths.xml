@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <paths>
+        <external-path
+            name="external_camera_photos"
+            path="" />
+        <!-- path属性的值表示共享的具体位置，设置为空，就表示共享整个SD卡 -->
+
+        <files-path
+            name="inner_camera_photos"
+            path="/qrcode/icon" />
+
+        <cache-path
+            name="inner_cache"
+            path="" />
+    </paths>
+</resources>

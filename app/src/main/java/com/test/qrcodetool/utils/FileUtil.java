@@ -46,7 +46,7 @@ public class FileUtil {
 
         final String rootPath = Environment.getExternalStorageState() == Environment.MEDIA_MOUNTED
                 || !isExternalStorageRemovable() ? Environment.getExternalStorageDirectory()
-                .getPath() : "/data/data/" + context.getPackageName();
+                .getPath() : context.getFilesDir().getAbsolutePath();
 
         File folder = new File(rootPath + File.separator + subDirName);
         checkAndMkDirs(folder);

@@ -1,12 +1,15 @@
 package com.test.qrcodetool.utils;
 
 import android.content.ActivityNotFoundException;
+import android.content.ContentValues;
 import android.content.Context;
 import android.content.Intent;
 import android.graphics.Bitmap;
 import android.net.Uri;
+import android.os.Build;
 import android.provider.MediaStore;
 import android.support.v4.app.Fragment;
+import android.support.v4.content.FileProvider;
 import android.util.Log;
 import android.widget.Toast;
 
@@ -26,11 +29,21 @@ public class ImagePicker {
 
     public final static int ACTIVITY_REQUESTCODE_CAMERA = 0;
     public final static int ACTIVITY_REQUESTCODE_GALLERY = 1;
+    public final static int ACTIVITY_REQUESTCODE_CROP = 2;
 
     public static void pickByCamera(Fragment launcher, File target) {
         try {
             Intent intent = new Intent(MediaStore.ACTION_IMAGE_CAPTURE);
-            intent.putExtra(MediaStore.EXTRA_OUTPUT, Uri.fromFile(target));
+            Uri uri;
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
+                // 对目标应用临时授权该Uri所代表的文件
+                intent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
+                // 通过FileProvider创建一个content类型的Uri
+                uri = FileProvider.getUriForFile(launcher.getContext().getApplicationContext(), "com.test.qrcodetool.fileprovider", target);
+            } else {
+                uri = Uri.fromFile(target);
+            }
+            intent.putExtra(MediaStore.EXTRA_OUTPUT, uri);
             launcher.startActivityForResult(intent,
                     ACTIVITY_REQUESTCODE_CAMERA);
         } catch (ActivityNotFoundException e) {
@@ -81,24 +94,51 @@ public class ImagePicker {
         }
     }
 
-    /**
-     * android 4.4以下适用
-     */
-    public static void cutImageByCamera(Fragment launcher, File target) {
+    public static void cutImageByCamera(Fragment launcher, File source, File crop) {
         Intent intent = new Intent("com.android.camera.action.CROP");
-        intent.setDataAndType(Uri.fromFile(target), "image/*");
+        Uri uriSource;
+        Uri uriCrop;
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
+            // 对目标应用临时授权该Uri所代表的文件
+            intent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
+            intent.addFlags(Intent.FLAG_GRANT_WRITE_URI_PERMISSION);//TODO
+            // 通过FileProvider创建一个content类型的Uri
+            uriSource = FileProvider.getUriForFile(launcher.getContext().getApplicationContext(), "com.test.qrcodetool.fileprovider", source);
+            uriCrop = FileProvider.getUriForFile(launcher.getContext().getApplicationContext(), "com.test.qrcodetool.fileprovider", crop);
+        } else {
+            uriSource = Uri.fromFile(source);
+            uriCrop = Uri.fromFile(crop);
+        }
+        intent.setDataAndType(uriSource, "image/*");
         intent.putExtra("crop", "true");
         intent.putExtra("aspectX", 1);
         intent.putExtra("aspectY", 1);
         intent.putExtra("outputX", 100);
         intent.putExtra("outputY", 100);
         intent.putExtra("scale", true);
-        intent.putExtra(MediaStore.EXTRA_OUTPUT, Uri.fromFile(target));
+        intent.putExtra(MediaStore.EXTRA_OUTPUT, uriCrop);
         intent.putExtra("return-data", false);
         intent.putExtra("outputFormat", Bitmap.CompressFormat.JPEG.toString());
         intent.putExtra("noFaceDetection", true);
         launcher.startActivityForResult(intent,
-                ACTIVITY_REQUESTCODE_GALLERY);
+                ACTIVITY_REQUESTCODE_CROP);
+    }
+
+    /**
+     * 读取uri所在的图片
+     *
+     * @param uri      图片对应的Uri
+     * @param mContext 上下文对象
+     * @return 获取图像的Bitmap
+     */
+    public static Bitmap getBitmapFromUri(Uri uri, Context mContext) {
+        try {
+            Bitmap bitmap = MediaStore.Images.Media.getBitmap(mContext.getContentResolver(), uri);
+            return bitmap;
+        } catch (Exception e) {
+            e.printStackTrace();
+            return null;
+        }
     }
 
     /**

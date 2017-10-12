@@ -29,6 +29,7 @@ import com.test.qrcodetool.utils.ImageUtil;
 import com.test.qrcodetool.utils.Md5Util;
 import com.test.qrcodetool.utils.QrcodeUtil;
 import com.test.qrcodetool.utils.FileUtil;
+import com.test.qrcodetool.utils.UriUtil;
 
 import java.io.File;
 import java.io.FileNotFoundException;
@@ -73,6 +74,9 @@ public class FragmentCreateCode extends Fragment {
     private File saveFile;
 
     private static final String SAVE_DIR_ROOT = "qrcode";
+    /**
+     * 拍照结果存储目录要与xml/share_paths.xml中写的共享路径一致
+     */
     private static final String SAVE_DIR_SUB_ICON = SAVE_DIR_ROOT + File.separator + "icon";
     private static final String SAVE_NAME_SUFFIX = ".jpg";
 
@@ -87,7 +91,7 @@ public class FragmentCreateCode extends Fragment {
     @Override
     public void onAttach(Context context) {
         super.onAttach(context);
-        mDestinationUri = Uri.fromFile(new File(getActivity().getCacheDir(), "cropImage.jpeg"));
+        mDestinationUri = Uri.fromFile(new File(getIconSavePath(), "cropImage.jpeg"));
         mTempPhotoPath = getIconSavePath() + File.separator + "tempPhoto.jpeg";
     }
 
@@ -342,11 +346,25 @@ public class FragmentCreateCode extends Fragment {
                 case ImagePicker.ACTIVITY_REQUESTCODE_CAMERA:   // 调用相机拍照
                     File temp = new File(mTempPhotoPath);
                     ImagePicker.startCropActivity(Uri.fromFile(temp), mDestinationUri, this);
+                    // TODO: 2017/10/11
+//                    ImagePicker.cutImageByCamera(this, temp, new File(mDestinationUri.getPath()));
                     break;
                 case ImagePicker.ACTIVITY_REQUESTCODE_GALLERY:  // 直接从相册获取
                     ImagePicker.startCropActivity(data.getData(), mDestinationUri, this);
+                    // TODO: 2017/10/11
+//                    Uri newUri = Uri.parse(UriUtil.getUriPath(getContext(), data.getData()));
+//                    ImagePicker.cutImageByCamera(this, new File(newUri.getPath()), new File(mDestinationUri.getPath()));
                     break;
-                case UCrop.REQUEST_CROP:    // 裁剪图片结果
+                case ImagePicker.ACTIVITY_REQUESTCODE_CROP:  // 利用系统裁剪结果
+                    // TODO: 2017/10/11
+                    Bitmap bitmap = ImagePicker.getBitmapFromUri(mDestinationUri, getContext());
+                    if (codeBitmap != null) {
+                        Bitmap logo = ImageUtil.roundBitmap(bitmap);
+                        codeBitmap = QrcodeUtil.addLogoForQRCode(codeBitmap, logo);
+                        codeImg.setImageBitmap(codeBitmap);
+                    }
+                    break;
+                case UCrop.REQUEST_CROP:    // 利用第三方库裁剪图片结果
                     ImagePicker.handleCropResult(getContext(), data, new ImagePicker.OnPictureSelectedListener() {
                         @Override
                         public void onPictureSelected(Uri fileUri, Bitmap bitmap) {
@@ -358,7 +376,7 @@ public class FragmentCreateCode extends Fragment {
                         }
                     });
                     break;
-                case UCrop.RESULT_ERROR:    // 裁剪图片错误
+                case UCrop.RESULT_ERROR:    // 利用第三方库裁剪图片错误
                     ImagePicker.handleCropError(getContext(), data);
                     break;
             }
