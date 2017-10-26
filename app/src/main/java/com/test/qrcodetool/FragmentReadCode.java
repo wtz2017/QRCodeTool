@@ -27,6 +27,7 @@ public class FragmentReadCode extends Fragment {
     private static final String TAG = FragmentCreateCode.class.getSimpleName();
 
     private Button mScan;
+    private Button mQueryBarcode;
     private TextView mResult;
     private ImageView mOriginerImage;
 
@@ -39,12 +40,23 @@ public class FragmentReadCode extends Fragment {
         mScan.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-            scan();
+                scan();
+            }
+        });
+        mQueryBarcode = (Button) rootView.findViewById(R.id.btn_query_barcode);
+        mQueryBarcode.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                queryBarcode();
             }
         });
         mResult = (TextView) rootView.findViewById(R.id.tv_result);
         mOriginerImage = (ImageView) rootView.findViewById(R.id.iv_originer);
         return rootView;
+    }
+
+    private void queryBarcode() {
+        startActivity(new Intent(FragmentReadCode.this.getContext(), QueryBarcodeActivity.class));
     }
 
     private void scan() {
