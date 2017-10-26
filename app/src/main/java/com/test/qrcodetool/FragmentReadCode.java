@@ -3,6 +3,7 @@ package com.test.qrcodetool;
 import android.content.Intent;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
+import android.net.Uri;
 import android.os.Bundle;
 import android.support.annotation.Nullable;
 import android.support.v4.app.Fragment;
@@ -56,7 +57,16 @@ public class FragmentReadCode extends Fragment {
     }
 
     private void queryBarcode() {
-        startActivity(new Intent(FragmentReadCode.this.getContext(), QueryBarcodeActivity.class));
+//        startActivity(new Intent(FragmentReadCode.this.getContext(), QueryBarcodeActivity.class));
+
+        // webview能打开第一页，但提交数据查询时提示“非法ip”，没有正常显示人机验证页面
+        // 报错：Uncaught TypeError: Cannot read property 'Constructor' of undefined
+        // , source: http://www.ancc.org.cn/bootstrap/js/bootstrap-accessibility.min.js (4)
+        Intent intent = new Intent();
+        intent.setAction(Intent.ACTION_VIEW);
+        Uri content_url = Uri.parse("http://www.ancc.org.cn/Service/queryTools/Internal.aspx");
+        intent.setData(content_url);
+        startActivity(intent);
     }
 
     private void scan() {
