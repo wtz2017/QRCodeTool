@@ -1,0 +1,6 @@
+<resources>
+
+    <dimen name="phone_scan_size">300dp</dimen>
+    <dimen name="TVBOX_scan_size">600dp</dimen>
+
+</resources>

@@ -31,7 +31,7 @@ public class OpenCameraInterface {
 	 *            "no preference"
 	 * @return handle to {@link Camera} that was opened
 	 */
-	public static Camera open(int cameraId) {
+	public static OpenedCamera open(int cameraId) {
 
 		int numCameras = Camera.getNumberOfCameras();
 		if (numCameras == 0) {
@@ -66,11 +66,13 @@ public class OpenCameraInterface {
 				camera = null;
 			} else {
 				Log.i(TAG, "No camera facing back; returning camera #0");
-				camera = Camera.open(0);
+				cameraId = 0;
+				camera = Camera.open(cameraId);
 			}
 		}
 
-		return camera;
+		OpenedCamera openedCamera = new OpenedCamera(camera, cameraId);
+		return openedCamera;
 	}
 
 	/**
@@ -79,7 +81,7 @@ public class OpenCameraInterface {
 	 * 
 	 * @return handle to {@link Camera} that was opened
 	 */
-	public static Camera open() {
+	public static OpenedCamera open() {
 		return open(-1);
 	}
 

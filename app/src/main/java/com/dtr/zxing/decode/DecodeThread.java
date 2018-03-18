@@ -78,6 +78,8 @@ public class DecodeThread extends Thread {
 		}
 
 		hints.put(DecodeHintType.POSSIBLE_FORMATS, decodeFormats);
+        hints.put(DecodeHintType.TRY_HARDER, Boolean.TRUE);
+        hints.put(DecodeHintType.CHARACTER_SET, "utf-8");
 	}
 
 	public Handler getHandler() {

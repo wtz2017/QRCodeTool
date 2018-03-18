@@ -22,11 +22,13 @@ import java.util.Iterator;
 import java.util.List;
 
 import android.annotation.SuppressLint;
+import android.app.Activity;
 import android.content.Context;
 import android.graphics.Point;
 import android.hardware.Camera;
 import android.util.Log;
 import android.view.Display;
+import android.view.Surface;
 import android.view.WindowManager;
 
 /**
@@ -47,20 +49,32 @@ public final class CameraConfigurationManager {
 	private static final int MIN_PREVIEW_PIXELS = 480 * 320;
 	private static final double MAX_ASPECT_DISTORTION = 0.15;
 
-	private final Context context;
+	private final Activity activity;
 
 	// 屏幕分辨率
 	private Point screenResolution;
 	// 相机分辨率
 	private Point cameraResolution;
 
-	public CameraConfigurationManager(Context context) {
-		this.context = context;
+	public CameraConfigurationManager(Activity activity) {
+		this.activity = activity;
 	}
 
 	public void initFromCameraParameters(Camera camera) {
 		Camera.Parameters parameters = camera.getParameters();
-		WindowManager manager = (WindowManager) context.getSystemService(Context.WINDOW_SERVICE);
+
+		List<String> allFocus = parameters.getSupportedFocusModes();
+		for (String ff : allFocus) {
+			Log.i(TAG, "for all focus mode: " + ff);
+		}
+		if (allFocus.contains(Camera.Parameters.FLASH_MODE_AUTO)) {
+			parameters.setFocusMode(Camera.Parameters.FOCUS_MODE_AUTO);
+		} else if (allFocus.contains(Camera.Parameters.FOCUS_MODE_CONTINUOUS_VIDEO)) {
+			parameters.setFocusMode(Camera.Parameters.FOCUS_MODE_CONTINUOUS_PICTURE);  // FOCUS_MODE_CONTINUOUS_PICTURE FOCUS_MODE_AUTO
+		}
+		camera.setParameters(parameters);
+
+        WindowManager manager = (WindowManager) activity.getApplicationContext().getSystemService(Context.WINDOW_SERVICE);
 		Display display = manager.getDefaultDisplay();
 		Point theScreenResolution = new Point();
 		theScreenResolution = getDisplaySize(display);
@@ -96,7 +110,7 @@ public final class CameraConfigurationManager {
 		return point;
 	}
 
-	public void setDesiredCameraParameters(Camera camera, boolean safeMode) {
+	public void setDesiredCameraParameters(Camera camera, int cameraId, boolean safeMode) {
 		Camera.Parameters parameters = camera.getParameters();
 
 		if (parameters == null) {
@@ -121,8 +135,40 @@ public final class CameraConfigurationManager {
 			cameraResolution.y = afterSize.height;
 		}
 
-		/** 设置相机预览为竖屏 */
-		camera.setDisplayOrientation(90);
+		setCameraDisplayOrientation(activity, cameraId, camera);
+    }
+
+	private void setCameraDisplayOrientation(Activity activity, int cameraId, android.hardware.Camera camera) {
+		android.hardware.Camera.CameraInfo info = new android.hardware.Camera.CameraInfo();
+		android.hardware.Camera.getCameraInfo(cameraId, info);
+		int rotation = activity.getWindowManager().getDefaultDisplay().getRotation();
+		int degrees = 0;
+		switch (rotation) {
+			case Surface.ROTATION_0:
+				degrees = 0;
+				break;
+			case Surface.ROTATION_90:
+				degrees = 90;
+				break;
+			case Surface.ROTATION_180:
+				degrees = 180;
+				break;
+			case Surface.ROTATION_270:
+				degrees = 270;
+				break;
+		}
+		int result;
+		if (info.facing == Camera.CameraInfo.CAMERA_FACING_FRONT) {
+            Log.d(TAG, "CAMERA_FACING_FRONT: 面向脸，前置摄像头");
+            result = (info.orientation + degrees) % 360;
+			result = (360 - result) % 360;
+			// compensate the mirror
+		} else {
+			// back-facing
+            Log.d(TAG, "back-facing: 后置摄像头");
+			result = (info.orientation - degrees + 360) % 360;
+		}
+		camera.setDisplayOrientation(result);
 	}
 
 	public Point getCameraResolution() {

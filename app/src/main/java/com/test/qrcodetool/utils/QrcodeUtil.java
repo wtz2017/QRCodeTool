@@ -1,6 +1,8 @@
 package com.test.qrcodetool.utils;
 
+import java.util.EnumMap;
 import java.util.Hashtable;
+import java.util.Map;
 
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
@@ -207,8 +209,9 @@ public class QrcodeUtil {
         if (TextUtils.isEmpty(path)) {
             return null;
         }
-        Hashtable<DecodeHintType, String> hints = new Hashtable<DecodeHintType, String>();
+        Map<DecodeHintType, Object> hints = new EnumMap<DecodeHintType, Object>(DecodeHintType.class);
         hints.put(DecodeHintType.CHARACTER_SET, "UTF8"); // 设置码内容的编码
+        hints.put(DecodeHintType.TRY_HARDER, Boolean.TRUE);
 
         BitmapFactory.Options options = new BitmapFactory.Options();
         options.inJustDecodeBounds = true; // 先获取原大小

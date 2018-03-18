@@ -17,15 +17,15 @@ package com.dtr.zxing.activity;
 
 import android.app.Activity;
 import android.app.AlertDialog;
+import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
-import android.database.Cursor;
+import android.graphics.Point;
 import android.graphics.Rect;
-import android.os.Build;
 import android.os.Bundle;
 import android.os.Handler;
-import android.provider.MediaStore;
 import android.util.Log;
+import android.view.Display;
 import android.view.SurfaceHolder;
 import android.view.SurfaceView;
 import android.view.View;
@@ -43,8 +43,8 @@ import com.dtr.zxing.utils.BeepManager;
 import com.dtr.zxing.utils.CaptureActivityHandler;
 import com.dtr.zxing.utils.InactivityTimer;
 import com.google.zxing.Result;
-import com.test.qrcodetool.utils.QrcodeUtil;
 import com.test.qrcodetool.R;
+import com.test.qrcodetool.utils.QrcodeUtil;
 import com.test.qrcodetool.utils.UriUtil;
 
 import java.io.IOException;
@@ -85,6 +85,7 @@ public final class CaptureActivity extends Activity implements SurfaceHolder.Cal
 	}
 
 	private boolean isHasSurface = false;
+	private boolean isPhone = true;
 
 	@Override
 	public void onCreate(Bundle icicle) {
@@ -93,6 +94,23 @@ public final class CaptureActivity extends Activity implements SurfaceHolder.Cal
 		Window window = getWindow();
 		window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
 		setContentView(R.layout.activity_capture);
+
+        WindowManager manager = (WindowManager) getApplicationContext().getSystemService(Context.WINDOW_SERVICE);
+        Display display = manager.getDefaultDisplay();
+        Point theScreenResolution = new Point();
+        try {
+            display.getSize(theScreenResolution);
+        } catch (NoSuchMethodError ignore) {
+            theScreenResolution.x = display.getWidth();
+            theScreenResolution.y = display.getHeight();
+        }
+        if (theScreenResolution.x < theScreenResolution.y) {
+            // Phone
+            isPhone = true;
+        } else {
+            // TV/Box
+            isPhone = false;
+        }
 
 		scanPreview = (SurfaceView) findViewById(R.id.capture_preview);
 		scanContainer = (RelativeLayout) findViewById(R.id.capture_container);
@@ -105,6 +123,17 @@ public final class CaptureActivity extends Activity implements SurfaceHolder.Cal
                 openLocalImage();
             }
         });
+
+        RelativeLayout.LayoutParams lp = (RelativeLayout.LayoutParams) scanCropView.getLayoutParams();
+        int scanSize;
+        if (isPhone) {
+            scanSize = getResources().getDimensionPixelSize(R.dimen.phone_scan_size);
+        } else {
+            scanSize = getResources().getDimensionPixelSize(R.dimen.TVBOX_scan_size);
+        }
+        lp.width = scanSize;
+        lp.height = scanSize;
+        scanCropView.setLayoutParams(lp);
 
 		inactivityTimer = new InactivityTimer(this);
 		beepManager = new BeepManager(this);
@@ -128,7 +157,7 @@ public final class CaptureActivity extends Activity implements SurfaceHolder.Cal
 		// first launch. That led to bugs where the scanning rectangle was the
 		// wrong size and partially
 		// off screen.
-		cameraManager = new CameraManager(getApplication());
+		cameraManager = new CameraManager(this);
 
 		handler = null;
 
@@ -280,8 +309,12 @@ public final class CaptureActivity extends Activity implements SurfaceHolder.Cal
 	 * 初始化截取的矩形区域
 	 */
 	private void initCrop() {
-		int cameraWidth = cameraManager.getCameraResolution().y;
-		int cameraHeight = cameraManager.getCameraResolution().x;
+        int cameraWidth = cameraManager.getCameraResolution().x;
+        int cameraHeight = cameraManager.getCameraResolution().y;
+        if (isPhone) {
+            cameraWidth = cameraManager.getCameraResolution().y;
+            cameraHeight = cameraManager.getCameraResolution().x;
+        }
 
 		/** 获取布局中扫描框的位置信息 */
 		int[] location = new int[2];
@@ -366,4 +399,7 @@ public final class CaptureActivity extends Activity implements SurfaceHolder.Cal
         }
     }
 
+    public boolean isPhone() {
+        return isPhone;
+    }
 }

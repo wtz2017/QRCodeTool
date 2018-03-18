@@ -18,6 +18,7 @@ package com.dtr.zxing.camera;
 
 import java.io.IOException;
 
+import android.app.Activity;
 import android.content.Context;
 import android.graphics.Point;
 import android.hardware.Camera;
@@ -27,6 +28,7 @@ import android.util.Log;
 import android.view.SurfaceHolder;
 
 import com.dtr.zxing.camera.open.OpenCameraInterface;
+import com.dtr.zxing.camera.open.OpenedCamera;
 
 /**
  * This object wraps the Camera service object and expects to be the only one
@@ -47,6 +49,7 @@ public class CameraManager {
 	private boolean initialized;
 	private boolean previewing;
 	private int requestedCameraId = -1;
+	private int openedCameraId = -1;
 	/**
 	 * Preview frames are delivered here, which we pass on to the registered
 	 * handler. Make sure to clear the handler so it will only receive one
@@ -54,9 +57,9 @@ public class CameraManager {
 	 */
 	private final PreviewCallback previewCallback;
 
-	public CameraManager(Context context) {
-		this.context = context;
-		this.configManager = new CameraConfigurationManager(context);
+	public CameraManager(Activity activity) {
+		this.context = activity.getApplicationContext();
+		this.configManager = new CameraConfigurationManager(activity);
 		previewCallback = new PreviewCallback(configManager);
 	}
 
@@ -72,17 +75,19 @@ public class CameraManager {
 	public synchronized void openDriver(SurfaceHolder holder) throws IOException {
 		Camera theCamera = camera;
 		if (theCamera == null) {
-
+            OpenedCamera openedCamera;
 			if (requestedCameraId >= 0) {
-				theCamera = OpenCameraInterface.open(requestedCameraId);
+                openedCamera = OpenCameraInterface.open(requestedCameraId);
 			} else {
-				theCamera = OpenCameraInterface.open();
+                openedCamera = OpenCameraInterface.open();
 			}
 
-			if (theCamera == null) {
+			if (openedCamera == null || openedCamera.getCamera() == null) {
 				throw new IOException();
 			}
-			camera = theCamera;
+			theCamera = openedCamera.getCamera();
+            camera = theCamera;
+            openedCameraId = openedCamera.getId();
 		}
 		theCamera.setPreviewDisplay(holder);
 
@@ -96,7 +101,7 @@ public class CameraManager {
 																						// these,
 																						// temporarily
 		try {
-			configManager.setDesiredCameraParameters(theCamera, false);
+			configManager.setDesiredCameraParameters(theCamera, openedCameraId, false);
 		} catch (RuntimeException re) {
 			// Driver failed
 			Log.w(TAG, "Camera rejected parameters. Setting only minimal safe-mode parameters");
@@ -107,7 +112,7 @@ public class CameraManager {
 				parameters.unflatten(parametersFlattened);
 				try {
 					theCamera.setParameters(parameters);
-					configManager.setDesiredCameraParameters(theCamera, true);
+					configManager.setDesiredCameraParameters(theCamera, openedCameraId, true);
 				} catch (RuntimeException re2) {
 					// Well, darn. Give up
 					Log.w(TAG, "Camera rejected even safe-mode parameters! No configuration");
